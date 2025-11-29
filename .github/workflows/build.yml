@@ -1,0 +1,37 @@
+name: Build Cricfy Kodi Plugin
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install the project
+        run: uv sync --locked --all-extras
+
+      - name: Run main.py
+        env:
+          CRICFY_URL: ${{ secrets.CRICFY_URL }}
+          CRICFY_SECRET: ${{ secrets.CRICFY_SECRET }}
+        run: uv run main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: plugin.video.cricfy
+          path: plugin.video.cricfy* # Wildcard is needed to include the enclosing folder
