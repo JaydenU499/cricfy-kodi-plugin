@@ -7,6 +7,11 @@ custom_headers = {
   "Cache-Control": "no-cache, no-store",
 }
 
+license_headers = {
+  "Content-Type": "*/*",
+  "User-Agent": "Dalvik/2.1.0 (Linux; U; Android)",
+}
+
 
 def fetch_url(url: str, timeout: int = 15) -> str:
   response = requests.get(

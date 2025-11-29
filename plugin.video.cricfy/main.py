@@ -1,10 +1,12 @@
+import ast
+import re
 import sys
 from urllib.parse import urlencode, parse_qsl
 import xbmcgui
 import xbmcplugin
 from lib.providers import get_providers
 from lib.logger import log_error
-from lib.req import fetch_url
+from lib.req import fetch_url, license_headers
 from lib.m3u_parser import parse_m3u
 
 # Base URL for the addon
@@ -88,6 +90,53 @@ def list_channels(m3u_url):
     xbmcplugin.endOfDirectory(ADDON_HANDLE)
 
 
+def play_video(url, user_agent, cookie, referer, license_string, headers):
+  """
+  Resolves the URL and sets up Inputstream Adaptive for DRM or HLS.
+  """
+  li = xbmcgui.ListItem(path=url)
+
+  # Construct standard headers string for Kodi
+  stream_headers = []
+  if headers:
+    parsed_headers = ast.literal_eval(headers)
+    for k, v in parsed_headers.items():
+      stream_headers.append(f'{k}={v}')
+
+  if user_agent:
+    stream_headers.append(f'User-Agent={user_agent}')
+  if referer:
+    stream_headers.append(f'Referer={referer}')
+  if cookie:
+    stream_headers.append(f'Cookie={cookie}')
+
+  # Check if DASH (mpd) or HLS (m3u/m3u8) or DRM license is present
+  if '.mpd' in url or '.m3u8' in url or '.m3u' in url or license_string:
+    li.setProperty('inputstream', 'inputstream.adaptive')
+
+    if (stream_headers):
+      encoded_headers = '&'.join(stream_headers)
+      li.setProperty('inputstream.adaptive.manifest_headers', encoded_headers)
+      li.setProperty('inputstream.adaptive.stream_headers', encoded_headers)
+      url += '|' + encoded_headers
+      li.setPath(url)
+
+    if license_string:
+      # Check if Clearkey license exists
+      # Match format hex:hex (one or more hex digits each side)
+      hex_pair_re = re.compile(r'^[0-9a-fA-F]+:[0-9a-fA-F]+$')
+
+      if license_string and hex_pair_re.match(license_string):
+        drm_config = f"org.w3.clearkey|{license_string}"
+        li.setProperty('inputstream.adaptive.drm_legacy', drm_config)
+
+      # If it's a URL (Clearkey License Server)
+      elif license_string and license_string.startswith('http'):
+        drm_config = f"org.w3.clearkey|{license_string}|{urlencode(license_headers)}"
+        li.setProperty('inputstream.adaptive.drm_legacy', drm_config)
+  xbmcplugin.setResolvedUrl(ADDON_HANDLE, True, li)
+
+
 def router(param_string):
   params = dict(parse_qsl(param_string))
   mode = params.get('mode')
@@ -96,9 +145,18 @@ def router(param_string):
     list_providers()
   elif mode == 'list_channels':
     list_channels(params.get('url'))
+  elif mode == 'play':
+    play_video(
+      params.get('url'),
+      params.get('ua'),
+      params.get('cookie'),
+      params.get('referer'),
+      params.get('lic'),
+      params.get('headers')
+    )
   else:
     xbmcgui.Dialog().notification(
-      'Error', 'Not yet implemented', xbmcgui.NOTIFICATION_ERROR)
+      'Error', 'Not implemented', xbmcgui.NOTIFICATION_ERROR)
 
 
 if __name__ == '__main__':
