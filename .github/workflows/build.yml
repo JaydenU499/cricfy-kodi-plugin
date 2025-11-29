@@ -2,8 +2,13 @@ name: Build Cricfy Kodi Plugin
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -35,3 +40,29 @@ jobs:
         with:
           name: plugin.video.cricfy
           path: plugin.video.cricfy* # Wildcard is needed to include the enclosing folder
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: plugin.video.cricfy
+          path: dist
+
+      - name: Zip the folder
+        run: |
+          cd dist
+          zip -r plugin.video.cricfy-${{ github.ref_name }}.zip plugin.video.cricfy
+          rm -rf plugin.video.cricfy
+
+      - name: Create GitHub release and upload asset(s)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: dist/**
+          make_latest: true
+
