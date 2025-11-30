@@ -1,13 +1,7 @@
 import base64
 from lib.logger import log_error
 from lib.config import ADDON_PATH
-
-try:
-  from Crypto.Cipher import AES
-except ImportError:
-  # Kodi environment does not have Crypto.Cipher module
-  # Instead it imports automatically from its pycryptodome package
-  pass
+from Cryptodome.Cipher import AES
 
 SECRET_FILE_PATH = ADDON_PATH / "resources" / "secret.txt"
 SECRET = open(SECRET_FILE_PATH, "r").read().strip()
@@ -35,7 +29,7 @@ def decrypt_data(encrypted_base64: str) -> str:
     decoded = base64.b64decode(clean_base64)
 
     # 4. AES decrypt (CBC mode, PKCS5 padding)
-    cipher = AES.new(key, AES.MODE_CBC, iv) # pyright: ignore[reportPossiblyUnboundVariable]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
     decrypted = cipher.decrypt(decoded)
 
     # 5. Handle padding
