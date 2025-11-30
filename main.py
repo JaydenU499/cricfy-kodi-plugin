@@ -3,7 +3,7 @@ import os
 import requests
 import base64
 import json
-from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 
 CURRENT_DIR = Path(__file__).resolve().parent
 CRICFY_PLUGIN_DIR = CURRENT_DIR / 'plugin.video.cricfy'
