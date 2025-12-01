@@ -38,8 +38,10 @@ jobs:
 
       - name: Run main.py
         env:
-          CRICFY_URL: ${{ secrets.CRICFY_URL }}
           CRICFY_SECRET: ${{ secrets.CRICFY_SECRET }}
+          CRICFY_FIREBASE_API_KEY: ${{ secrets.CRICFY_FIREBASE_API_KEY }}
+          CRICFY_FIREBASE_APP_ID: ${{ secrets.CRICFY_FIREBASE_APP_ID }}
+          CRICFY_PACKAGE_NAME: ${{ secrets.CRICFY_PACKAGE_NAME }}
         run: uv run main.py
 
       - name: Upload artifact

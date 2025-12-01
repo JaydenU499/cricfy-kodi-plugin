@@ -17,7 +17,7 @@ def fetch_url(url: str, timeout: int = 15) -> str:
   response = requests.get(
     url=url,
     headers=custom_headers,
-    timeout=timeout
+    timeout=timeout,
   )
   response.raise_for_status()
   if response.status_code != 200:

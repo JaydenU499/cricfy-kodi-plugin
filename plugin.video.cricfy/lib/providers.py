@@ -1,18 +1,12 @@
 import time
 import json
 import hashlib
-from lib.config import ADDON_PATH, cache
+from lib.config import cache
 from lib.logger import log_error, log_info
 from lib.crypto_utils import decrypt_data
 from lib.req import fetch_url
 from lib.m3u_parser import PlaylistItem, parse_m3u
-
-URL_FILE_PATH = ADDON_PATH / "resources" / "cricfy_url.txt"
-FALLBACK_PROVIDERS_FILE_PATH = ADDON_PATH / \
-  "resources" / "fallback_providers.json"
-
-URL = open(URL_FILE_PATH, "r").read().strip()
-FALLBACK_PROVIDERS = json.loads(open(FALLBACK_PROVIDERS_FILE_PATH, "r").read())
+from lib.remote_config import get_provider_api_url
 
 PROVIDERS_CACHE_KEY = "cricfy_providers"
 CHANNEL_CACHE_TTL = 3600  # 1 hour
@@ -36,27 +30,33 @@ def get_providers():
 
   log_info("providers", "[Cache Miss] Fetching providers from remote URL")
 
+  url = get_provider_api_url()
+
+  if not url:
+    log_error("providers", "Provider API URL is not found")
+    return []
+
   response = fetch_url(
-    URL,
+    f"{url}/cats.txt",
     timeout=15,
   )
   if response:
     try:
       decrypted_data = decrypt_data(response)
       if not decrypted_data:
-        return FALLBACK_PROVIDERS
+        return []
 
       providers = json.loads(decrypted_data)
 
       if not isinstance(providers, list):
-        return FALLBACK_PROVIDERS
+        return []
 
       cache.set(PROVIDERS_CACHE_KEY, decrypted_data)
       log_info("providers", "Providers cached successfully")
       return providers
     except Exception as e:
       log_error("providers", f"Error parsing providers: {e}")
-  return FALLBACK_PROVIDERS
+  return []
 
 
 def get_channels(provider_url: str):
